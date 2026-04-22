@@ -14,6 +14,7 @@ Routes:
 """
 
 import asyncio
+import base64
 import json
 import os
 import subprocess
@@ -42,8 +43,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
+    allow_origins=["*"],  # allows any local port (5173, 5174, 5175, etc.)
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -943,10 +944,42 @@ def _component_to_file_path(component_type: str, component_name: str) -> str:
     return f"force-app/main/default/{folder}/{safe_name}/{safe_name}.{suffix}"
 
 
+@app.get("/api/orgs/check")
+async def check_org_session(alias: str = Query(..., description="Org alias to verify")):
+    """
+    Verify that an org's session is active and the access token is valid.
+    Returns {valid: bool, message: str, instanceUrl: str}.
+    Call this before running a comparison to catch expired sessions early.
+    """
+    try:
+        auth = sfdx.get_org_access_token(alias)
+    except RuntimeError as exc:
+        return {"valid": False, "message": str(exc), "instanceUrl": ""}
+
+    # Make a lightweight REST API call to verify the token is alive
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                f"{auth['instanceUrl']}/services/data/v{meta_svc.API_VERSION}/",
+                headers={"Authorization": f"Bearer {auth['accessToken']}"},
+            )
+            if resp.status_code == 200:
+                return {"valid": True, "message": "Session active", "instanceUrl": auth["instanceUrl"]}
+            elif resp.status_code == 401:
+                return {
+                    "valid": False,
+                    "message": f"Session expired for '{alias}'. Run: sf org login web --alias {alias}",
+                    "instanceUrl": auth["instanceUrl"],
+                }
+            else:
+                return {"valid": False, "message": f"Org returned HTTP {resp.status_code}", "instanceUrl": auth["instanceUrl"]}
+    except httpx.HTTPError as e:
+        return {"valid": False, "message": f"Could not reach org: {e}", "instanceUrl": ""}
+
+
 # Health check
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
-import base64  # needed for PR creation — ensure it's imported at module level
