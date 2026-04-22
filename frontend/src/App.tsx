@@ -114,7 +114,7 @@ export default function App() {
           </div>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">SF Org Comparator</h1>
-            <p className="text-gray-500 text-xs leading-tight">Open-source Copado alternative</p>
+            <p className="text-gray-500 text-xs leading-tight">Salesforce GDC Team</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

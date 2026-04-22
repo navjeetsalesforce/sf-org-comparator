@@ -1,6 +1,6 @@
 # SF Org Comparator
 
-An open-source alternative to Copado's Org Comparator / Org Differences feature.
+Built by the Salesforce GDC Team. Compare metadata between two Salesforce orgs, create back-promotion PRs, and resolve conflicts with AI assistance.
 
 Compare metadata between two Salesforce orgs using SFDX CLI stored authentication — no JWT files, no passwords, no extra setup.
 
