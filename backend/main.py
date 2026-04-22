@@ -8,6 +8,9 @@ Routes:
   GET  /api/component                     Get raw XML of a single component
   POST /api/validate                      Run checkonly deploy to target org
   POST /api/pr                            Create GitHub PR for selected components
+  POST /api/conflicts/analyse             AI-powered conflict analysis
+  POST /api/conflicts/apply               Commit approved resolutions to PR branch
+  GET  /api/conflicts/status/{pr_number}  Conflict status of a PR
 """
 
 import asyncio
@@ -25,6 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from services import sfdx, metadata as meta_svc
+from services import ai_resolver
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -65,6 +69,30 @@ class PRRequest(BaseModel):
     sourceOrg: str
     targetOrg: str
     githubRepo: str = "navjeetshekhawat/sf-org-comparator"
+
+
+class ConflictComponent(BaseModel):
+    type: str
+    name: str
+    sourceXml: str
+    targetXml: str
+
+
+class AnalyseConflictsRequest(BaseModel):
+    components: list[ConflictComponent]
+    conflictContext: str = ""
+
+
+class ApprovedResolution(BaseModel):
+    type: str
+    name: str
+    proposedXml: str
+
+
+class ApplyResolutionsRequest(BaseModel):
+    approvedResolutions: list[ApprovedResolution]
+    branch: str
+    repo: str
 
 
 # ---------------------------------------------------------------------------
@@ -677,6 +705,242 @@ def _build_package_xml(components: list[dict]) -> str:
     lines.append("    <version>60.0</version>")
     lines.append("</Package>")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Conflict resolution endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/api/conflicts/analyse")
+async def analyse_conflicts(body: AnalyseConflictsRequest):
+    """
+    Analyse a set of conflicting Salesforce metadata components using AI.
+
+    For each component, the AI produces:
+      - A proposed merged XML
+      - A plain-English explanation of what it did and why
+      - A confidence level (high / medium / low)
+      - Per-line conflict details
+      - Whether the conflict is auto-resolvable (additive only)
+
+    The response status for every resolution is "pending" — the user must
+    approve or reject each one before anything can be committed.
+
+    If ANTHROPIC_API_KEY is not set, returns realistic mock resolutions so
+    the feature is always demonstrable in demo mode.
+    """
+    demo_mode = not bool(os.environ.get("ANTHROPIC_API_KEY", ""))
+
+    resolutions = []
+    for comp in body.components:
+        try:
+            result = ai_resolver.resolve_conflict(
+                source_xml=comp.sourceXml,
+                target_xml=comp.targetXml,
+                component_type=comp.type,
+                component_name=comp.name,
+                context=body.conflictContext,
+            )
+        except Exception as exc:
+            result = {
+                "merged_xml": comp.sourceXml,
+                "explanation": f"Analysis failed: {exc}. Using source XML as fallback.",
+                "confidence": "low",
+                "auto_resolvable": False,
+                "conflict_details": [],
+            }
+
+        resolutions.append({
+            "type": comp.type,
+            "name": comp.name,
+            "sourceXml": comp.sourceXml,
+            "targetXml": comp.targetXml,
+            "proposedXml": result["merged_xml"],
+            "explanation": result["explanation"],
+            "confidence": result["confidence"],
+            "autoResolvable": result["auto_resolvable"],
+            "conflictLines": result.get("conflict_details", []),
+            "status": "pending",
+            "demoMode": demo_mode,
+        })
+
+    return {
+        "resolutions": resolutions,
+        "demoMode": demo_mode,
+        "totalCount": len(resolutions),
+    }
+
+
+@app.post("/api/conflicts/apply")
+async def apply_resolutions(body: ApplyResolutionsRequest):
+    """
+    Commit approved conflict resolutions to a GitHub PR branch.
+
+    This endpoint is only called AFTER the user has reviewed and approved
+    individual resolutions in the UI. It commits each resolved XML file
+    to the specified branch via the GitHub API.
+
+    Requires GITHUB_TOKEN environment variable.
+    """
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    if not github_token:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "GITHUB_TOKEN environment variable is not set. "
+                "Export it before starting the backend: export GITHUB_TOKEN=ghp_..."
+            ),
+        )
+
+    if not body.approvedResolutions:
+        raise HTTPException(status_code=400, detail="No approved resolutions provided.")
+
+    repo = body.repo
+    branch = body.branch
+    committed_files: list[str] = []
+    errors: list[str] = []
+
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+
+        for resolution in body.approvedResolutions:
+            # Derive the file path in the repo from type and name
+            file_path = _component_to_file_path(resolution.type, resolution.name)
+            content_b64 = base64.b64encode(resolution.proposedXml.encode()).decode()
+
+            # Check if file already exists (to get its SHA for update)
+            existing_sha: Optional[str] = None
+            check_resp = await client.get(
+                f"https://api.github.com/repos/{repo}/contents/{file_path}",
+                headers=headers,
+                params={"ref": branch},
+            )
+            if check_resp.status_code == 200:
+                existing_sha = check_resp.json().get("sha")
+
+            payload: dict[str, Any] = {
+                "message": (
+                    f"fix(conflict): resolve {resolution.type}/{resolution.name} merge conflict\n\n"
+                    f"AI-suggested resolution approved by user. Review carefully before merging."
+                ),
+                "content": content_b64,
+                "branch": branch,
+            }
+            if existing_sha:
+                payload["sha"] = existing_sha
+
+            put_resp = await client.put(
+                f"https://api.github.com/repos/{repo}/contents/{file_path}",
+                json=payload,
+                headers=headers,
+            )
+
+            if put_resp.status_code in (200, 201):
+                committed_files.append(file_path)
+            else:
+                errors.append(
+                    f"{resolution.type}/{resolution.name}: {put_resp.status_code} {put_resp.text[:200]}"
+                )
+
+    if errors and not committed_files:
+        raise HTTPException(
+            status_code=500,
+            detail=f"All commits failed: {'; '.join(errors)}",
+        )
+
+    return {
+        "success": True,
+        "committedFiles": committed_files,
+        "errors": errors,
+        "message": (
+            f"Committed {len(committed_files)} resolved file(s) to branch '{branch}'. "
+            "Merge the PR on GitHub when you are ready."
+        ),
+    }
+
+
+@app.get("/api/conflicts/status/{pr_number}")
+async def get_conflict_status(pr_number: int, repo: str = Query(...)):
+    """
+    Return the conflict status of a GitHub PR — which files have conflicts,
+    which are resolved, and which are still pending.
+
+    Requires GITHUB_TOKEN environment variable.
+    """
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    if not github_token:
+        raise HTTPException(
+            status_code=400,
+            detail="GITHUB_TOKEN environment variable is not set.",
+        )
+
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+
+        # Get PR details
+        pr_resp = await client.get(
+            f"https://api.github.com/repos/{repo}/pulls/{pr_number}",
+            headers=headers,
+        )
+        if pr_resp.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"PR #{pr_number} not found in {repo}.")
+        if pr_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"GitHub API error: {pr_resp.text[:200]}")
+
+        pr_data = pr_resp.json()
+
+        # Get PR files
+        files_resp = await client.get(
+            f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files",
+            headers=headers,
+        )
+        files = files_resp.json() if files_resp.status_code == 200 else []
+
+    return {
+        "prNumber": pr_number,
+        "prUrl": pr_data.get("html_url", ""),
+        "title": pr_data.get("title", ""),
+        "state": pr_data.get("state", ""),
+        "mergeable": pr_data.get("mergeable"),
+        "mergeableState": pr_data.get("mergeable_state", ""),
+        "files": [
+            {
+                "filename": f.get("filename", ""),
+                "status": f.get("status", ""),
+                "additions": f.get("additions", 0),
+                "deletions": f.get("deletions", 0),
+                "hasConflict": f.get("status") == "modified" and pr_data.get("mergeable") is False,
+            }
+            for f in files
+        ],
+        "totalFiles": len(files),
+    }
+
+
+def _component_to_file_path(component_type: str, component_name: str) -> str:
+    """Convert a Salesforce metadata type + name into a repo file path."""
+    TYPE_DIRS = {
+        "ApexClass": ("classes", "cls-meta.xml"),
+        "ApexTrigger": ("triggers", "trigger-meta.xml"),
+        "LightningComponentBundle": ("lwc", "js-meta.xml"),
+        "AuraDefinitionBundle": ("aura", "cmp-meta.xml"),
+        "Flow": ("flows", "flow-meta.xml"),
+        "CustomObject": ("objects", "object-meta.xml"),
+        "Profile": ("profiles", "profile-meta.xml"),
+        "PermissionSet": ("permissionsets", "permissionset-meta.xml"),
+        "Layout": ("layouts", "layout-meta.xml"),
+        "ValidationRule": ("objects", "validationRule-meta.xml"),
+        "WorkflowRule": ("workflows", "workflow-meta.xml"),
+    }
+    folder, suffix = TYPE_DIRS.get(component_type, ("metadata", "xml"))
+    safe_name = component_name.replace("/", "_").replace("\\", "_")
+    return f"force-app/main/default/{folder}/{safe_name}/{safe_name}.{suffix}"
 
 
 # Health check

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { ComparisonResult, ValidationResponse, PRResponse } from '../types'
+import ConflictResolver from './ConflictResolver'
 
 interface Props {
   selectedResults: ComparisonResult[]
@@ -11,6 +12,7 @@ interface Props {
 type PanelTab = 'validate' | 'pr' | 'export'
 
 export default function ActionPanel({ selectedResults, sourceOrg, targetOrg, useMock }: Props) {
+  const [showConflictResolver, setShowConflictResolver] = useState(false)
   const [activeTab, setActiveTab] = useState<PanelTab>('validate')
   const [githubRepo, setGithubRepo] = useState('navjeetshekhawat/sf-org-comparator')
   const [validationResult, setValidationResult] = useState<ValidationResponse | null>(null)
@@ -20,6 +22,7 @@ export default function ActionPanel({ selectedResults, sourceOrg, targetOrg, use
 
   const components = selectedResults.map(r => ({ type: r.type, name: r.name }))
   const count = selectedResults.length
+  const conflictedComponents = selectedResults.filter(r => r.status === 'different')
 
   if (count === 0) {
     return (
@@ -140,6 +143,17 @@ export default function ActionPanel({ selectedResults, sourceOrg, targetOrg, use
   ]
 
   return (
+    <>
+      {/* ConflictResolver modal — rendered at root level of this component */}
+      {showConflictResolver && conflictedComponents.length > 0 && (
+        <ConflictResolver
+          conflictedComponents={conflictedComponents}
+          sourceOrg={sourceOrg}
+          targetOrg={targetOrg}
+          onClose={() => setShowConflictResolver(false)}
+        />
+      )}
+
     <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
@@ -153,6 +167,28 @@ export default function ActionPanel({ selectedResults, sourceOrg, targetOrg, use
           {count} selected
         </span>
       </div>
+
+      {/* AI Conflict Resolution button — shown when conflicted components are selected */}
+      {conflictedComponents.length > 0 && (
+        <div className="px-5 py-3 border-b border-gray-700/50 bg-purple-900/10">
+          <button
+            onClick={() => setShowConflictResolver(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-semibold rounded-lg transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            Resolve Conflicts with AI
+            <span className="bg-purple-500/40 text-purple-200 text-xs px-1.5 py-0.5 rounded-full font-bold">
+              {conflictedComponents.length}
+            </span>
+          </button>
+          <p className="mt-1.5 text-xs text-gray-600 text-center">
+            AI suggests resolutions — you approve each one individually
+          </p>
+        </div>
+      )}
 
       {/* Selected components summary */}
       <div className="px-5 py-3 border-b border-gray-700/50 bg-gray-900/30">
@@ -380,5 +416,6 @@ export default function ActionPanel({ selectedResults, sourceOrg, targetOrg, use
         )}
       </div>
     </div>
+    </>
   )
 }

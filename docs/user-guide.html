@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salesforce Org Comparator — User Guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    /* ── Cover Page ── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #032D60 0%, #00A1E0 100%);
+      color: white;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+    }
+
+    .cover .logo-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
+    .cover .sf-dot {
+      width: 48px; height: 48px;
+      background: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 900; color: #00A1E0;
+    }
+
+    .cover .brand { font-size: 20px; font-weight: 600; opacity: 0.9; }
+
+    .cover h1 {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .cover h1 span { color: #7CD4F5; }
+
+    .cover .subtitle {
+      font-size: 16px;
+      opacity: 0.85;
+      margin-bottom: 48px;
+      max-width: 520px;
+    }
+
+    .cover .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .cover .meta-card {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .cover .meta-card .label { font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+    .cover .meta-card .value { font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+    .cover .footer-note {
+      margin-top: 60px;
+      font-size: 11px;
+      opacity: 0.5;
+    }
+
+    /* ── Page layout ── */
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 56px;
+    }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #00A1E0;
+    }
+
+    .step-badge {
+      background: #00A1E0;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .step-badge.amber {
+      background: #f59e0b;
+      color: #1a1a2e;
+    }
+
+    .section-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #032D60;
+    }
+
+    /* ── Code blocks ── */
+    pre {
+      background: #0f1117;
+      color: #e2e8f0;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      margin: 12px 0 20px;
+      overflow-x: auto;
+      border-left: 3px solid #00A1E0;
+    }
+
+    pre .comment { color: #6b7280; }
+    pre .key { color: #7CD4F5; }
+    pre .value { color: #86efac; }
+    pre .string { color: #fbbf24; }
+
+    /* ── Info / note boxes ── */
+    .note {
+      background: #eff8ff;
+      border-left: 4px solid #00A1E0;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0 20px;
+      font-size: 12px;
+      color: #0369a1;
+    }
+
+    .warning {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0 20px;
+      font-size: 12px;
+      color: #92400e;
+    }
+
+    .warning strong { color: #78350f; }
+
+    /* ── Approval gate box ── */
+    .approval-gate {
+      background: #fffbeb;
+      border: 2px solid #f59e0b;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 16px 0 24px;
+    }
+
+    .approval-gate .gate-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #78350f;
+    }
+
+    .approval-gate .gate-icon {
+      width: 28px; height: 28px;
+      background: #f59e0b;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .approval-gate ul {
+      padding-left: 0;
+      list-style: none;
+      margin: 0;
+    }
+
+    .approval-gate ul li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 5px 0;
+      color: #92400e;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(245,158,11,0.2);
+    }
+
+    .approval-gate ul li:last-child { border-bottom: none; }
+    .approval-gate ul li::before { content: "!"; font-weight: 900; color: #f59e0b; flex-shrink: 0; }
+
+    /* ── Field reference tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 24px;
+      font-size: 12px;
+    }
+
+    thead tr { background: #032D60; color: white; }
+    thead th { padding: 10px 14px; text-align: left; font-weight: 600; }
+    tbody tr:nth-child(even) { background: #f0f8ff; }
+    tbody tr:nth-child(odd) { background: #ffffff; }
+    tbody td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+
+    .field-name { font-family: 'Courier New', monospace; color: #032D60; font-weight: 600; }
+    .field-values { color: #374151; }
+    .field-desc { color: #6b7280; }
+
+    /* ── Inline code ── */
+    code {
+      background: #f1f5f9;
+      color: #032D60;
+      font-family: 'Courier New', monospace;
+      font-size: 11.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* ── Section body text ── */
+    p { margin-bottom: 10px; color: #374151; }
+    ul { padding-left: 20px; margin-bottom: 16px; }
+    ul li { margin-bottom: 6px; color: #374151; }
+
+    /* ── Page break ── */
+    .page-break { page-break-before: always; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; padding: 0; margin: 12px 0 20px; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .checklist li .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .checklist li .text { font-size: 12px; color: #374151; }
+    .checklist li .text strong { color: #032D60; }
+
+    /* ── Step list ── */
+    .step-list { list-style: none; padding: 0; margin: 12px 0 20px; counter-reset: steps; }
+    .step-list li {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .step-list li::before {
+      content: counter(steps);
+      background: #032D60;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-list li .text { font-size: 12px; color: #374151; line-height: 1.5; }
+    .step-list li .text strong { color: #032D60; }
+
+    /* ── Diff legend ── */
+    .diff-legend {
+      display: flex;
+      gap: 16px;
+      margin: 12px 0 20px;
+      flex-wrap: wrap;
+    }
+
+    .diff-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .diff-swatch {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+    }
+
+    .diff-swatch.green { background: #22c55e; }
+    .diff-swatch.red { background: #ef4444; }
+    .diff-swatch.amber { background: #f59e0b; }
+    .diff-swatch.grey { background: #9ca3af; }
+
+    /* ── Architecture diagram ── */
+    .arch-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 16px 0 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .arch-box {
+      background: #032D60;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 110px;
+    }
+
+    .arch-box .sub { font-size: 9px; opacity: 0.7; margin-top: 3px; font-weight: 400; }
+    .arch-box.accent { background: #00A1E0; }
+    .arch-box.light { background: #e0f4fc; color: #032D60; }
+    .arch-box.amber-box { background: #f59e0b; color: #1a1a2e; }
+
+    .arch-arrow {
+      color: #00A1E0;
+      font-size: 20px;
+      padding: 0 8px;
+      font-weight: 300;
+    }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    /* ── Print styles ── */
+    @media print {
+      .cover { min-height: 100vh; }
+      .page { padding: 36px 48px; }
+      pre { font-size: 11px; }
+      .no-print { display: none; }
+    }
+
+    /* ── Print button ── */
+    .print-bar {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+    }
+
+    .print-btn {
+      background: #00A1E0;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,161,224,0.4);
+    }
+
+    .print-btn:hover { background: #0284C7; }
+  </style>
+</head>
+<body>
+
+<!-- Print Button -->
+<div class="print-bar no-print">
+  <button class="print-btn" onclick="window.print()">&#x1F4BE; Save as PDF</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- COVER PAGE                                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="logo-bar">
+    <div class="sf-dot">SF</div>
+    <div class="brand">Salesforce DevOps Practice</div>
+  </div>
+
+  <h1>Salesforce Org Comparator<br /><span>User Guide</span></h1>
+  <p class="subtitle">Side-by-side metadata comparison, back-promotion PR creation, checkonly validation, and AI conflict resolution across Salesforce orgs.</p>
+
+  <div class="meta-grid">
+    <div class="meta-card">
+      <div class="label">Document type</div>
+      <div class="value">User Guide</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">Audience</div>
+      <div class="value">DevOps Engineers</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">Region</div>
+      <div class="value">GDC (Global Delivery Center)</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">Version</div>
+      <div class="value">1.0</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">Date</div>
+      <div class="value">April 2026</div>
+    </div>
+    <div class="meta-card">
+      <div class="label">Stack</div>
+      <div class="value">FastAPI &middot; React &middot; TypeScript</div>
+    </div>
+  </div>
+
+  <p class="footer-note">Internal use only &middot; Salesforce DevOps Practice &middot; GDC</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 1 — Overview + Prerequisites                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="section-header">
+    <span class="step-badge">OVERVIEW</span>
+    <h2>What is the Salesforce Org Comparator?</h2>
+  </div>
+
+  <p>The <strong>Salesforce Org Comparator</strong> is an open-source alternative to Copado's Org Comparator. It provides a <strong>side-by-side metadata diff between two Salesforce orgs</strong>, enabling teams to identify drift, perform safe back-promotions, and validate changes — all without leaving their local environment.</p>
+
+  <div class="arch-row">
+    <div class="arch-box">Source Org<div class="sub">e.g. Production</div></div>
+    <div class="arch-arrow">&#x21C4;</div>
+    <div class="arch-box accent">Org Comparator<div class="sub">FastAPI + React</div></div>
+    <div class="arch-arrow">&#x2192;</div>
+    <div class="arch-box light">Back-Promotion PR<div class="sub">GitHub</div></div>
+  </div>
+
+  <p><strong>Key capabilities:</strong></p>
+  <ul>
+    <li><strong>Side-by-side XML diff</strong> — compare any metadata type between two orgs</li>
+    <li><strong>Back-promotion PR creation</strong> — raises a GitHub PR from source to target, no direct deployment</li>
+    <li><strong>Checkonly validation</strong> — runs a <code>checkonly</code> deploy to the target org before any merge</li>
+    <li><strong>package.xml export</strong> — download a ready-to-use package manifest of selected components</li>
+    <li><strong>AI conflict resolution</strong> — Claude AI proposes resolutions for XML conflicts, with explicit user approval gates</li>
+    <li><strong>Demo mode</strong> — try all features with mock data, no real org required</li>
+  </ul>
+
+  <div class="section-header" style="margin-top: 32px;">
+    <span class="step-badge">PRE-REQUISITES</span>
+    <h2>What you need before starting</h2>
+  </div>
+
+  <ul class="checklist">
+    <li>
+      <span class="icon">&#x2705;</span>
+      <span class="text"><strong>Node.js 18+</strong> — Download from <code>https://nodejs.org</code>. Verify with <code>node -v</code>.</span>
+    </li>
+    <li>
+      <span class="icon">&#x2705;</span>
+      <span class="text"><strong>Python 3.8+</strong> — Download from <code>https://python.org</code>. Verify with <code>python3 --version</code>.</span>
+    </li>
+    <li>
+      <span class="icon">&#x2705;</span>
+      <span class="text"><strong>Salesforce CLI</strong> — Install with <code>npm install -g @salesforce/cli</code>. Verify with <code>sf --version</code>.</span>
+    </li>
+    <li>
+      <span class="icon">&#x2705;</span>
+      <span class="text"><strong>At least one authenticated SF org</strong> — Run <code>sf org login web --alias myOrg</code> to authenticate. Verify with <code>sf org list</code>.</span>
+    </li>
+    <li>
+      <span class="icon">&#x2705;</span>
+      <span class="text"><strong>GitHub account</strong> — Required only for the back-promotion PR feature. A personal access token with <code>repo</code> scope is needed.</span>
+    </li>
+    <li>
+      <span class="icon">&#x2139;</span>
+      <span class="text"><strong>No org credentials needed for Demo Mode</strong> — toggle Demo Mode in the UI header to explore all features with mock data.</span>
+    </li>
+  </ul>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 1</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 2 — Installation & Starting the Tool              -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="section-header">
+    <span class="step-badge">INSTALLATION</span>
+    <h2>Installation &amp; Starting the Tool</h2>
+  </div>
+
+  <p><strong>Step 1 — Clone the repository:</strong></p>
+
+  <pre><span class="comment"># Clone from GitHub</span>
+git clone https://github.com/navjeetsalesforce/sf-org-comparator
+
+<span class="comment"># Move into the project folder</span>
+cd sf-org-comparator</pre>
+
+  <p><strong>Step 2 — Start both backend and frontend with one command:</strong></p>
+
+  <pre><span class="comment"># Make the start script executable, then run it</span>
+chmod +x start.sh &amp;&amp; ./start.sh</pre>
+
+  <p>The script starts the <strong>Python FastAPI backend</strong> on port <code>8000</code> and the <strong>React frontend</strong> on port <code>5173</code> automatically.</p>
+
+  <p><strong>Step 3 — Open the tool in your browser:</strong></p>
+
+  <pre><span class="value">http://localhost:5173</span></pre>
+
+  <div class="note">
+    <strong>Tip:</strong> Keep the terminal running — closing it will stop both servers. Open a second terminal tab if you need to run other commands.
+  </div>
+
+  <div class="section-header" style="margin-top: 32px;">
+    <span class="step-badge">AUTH</span>
+    <h2>Authenticating your Salesforce Orgs</h2>
+  </div>
+
+  <p>Before comparing orgs, authenticate each org using the Salesforce CLI. Run each command in a terminal — a browser window will open for OAuth login:</p>
+
+  <pre><span class="comment"># Authenticate your Production org</span>
+sf org login web --alias PROD
+
+<span class="comment"># Authenticate your UAT / staging org</span>
+sf org login web --alias UAT
+
+<span class="comment"># Verify both orgs are listed</span>
+sf org list</pre>
+
+  <p>Once authenticated, the org aliases (e.g. <code>PROD</code>, <code>UAT</code>) will appear in the dropdown menus inside the tool.</p>
+
+  <div class="section-header" style="margin-top: 32px;">
+    <span class="step-badge">DEMO MODE</span>
+    <h2>Trying the tool without real orgs</h2>
+  </div>
+
+  <p>Toggle <strong>Demo Mode</strong> using the switch in the top-right of the UI header. This loads pre-built mock data so you can explore all comparison, diff viewer, and back-promotion features without connecting to a live Salesforce org.</p>
+
+  <div class="warning">
+    <strong>Note:</strong> Demo Mode data is entirely fictional. PR creation and validation actions in Demo Mode do not connect to GitHub or Salesforce.
+  </div>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 2</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 3 — Running an Org Comparison                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="section-header">
+    <span class="step-badge">COMPARISON</span>
+    <h2>Running an Org Comparison</h2>
+  </div>
+
+  <p>Follow these steps to compare metadata between two orgs. The comparison fetches live metadata from both orgs via the Salesforce CLI and displays a structured diff in the browser.</p>
+
+  <ol class="step-list">
+    <li><span class="text"><strong>Select Source Org</strong> — Choose your source org (e.g. Production) from the Source dropdown. Only authenticated orgs appear here.</span></li>
+    <li><span class="text"><strong>Select Target Org</strong> — Choose your target org (e.g. UAT) from the Target dropdown.</span></li>
+    <li><span class="text"><strong>Choose metadata types</strong> — Select one or more metadata types to include in the comparison: <code>ApexClass</code>, <code>Flow</code>, <code>Profile</code>, <code>CustomObject</code>, <code>Layout</code>, <code>PermissionSet</code>, and others. Use the checkboxes to filter the scope.</span></li>
+    <li><span class="text"><strong>Click "Compare"</strong> — The backend retrieves metadata from both orgs via SFDX and computes the diff. A progress indicator is shown during retrieval.</span></li>
+    <li><span class="text"><strong>Review the summary bar</strong> — Once complete, the summary bar shows four counts: <strong>Identical</strong>, <strong>Different</strong>, <strong>Source Only</strong>, and <strong>Target Only</strong>.</span></li>
+    <li><span class="text"><strong>Filter results</strong> — Use the search bar above the results table to filter by component name or API name.</span></li>
+    <li><span class="text"><strong>Open the XML diff viewer</strong> — Click any row in the results table to open a side-by-side XML diff for that component.</span></li>
+  </ol>
+
+  <div class="section-header" style="margin-top: 28px;">
+    <span class="step-badge">DIFF VIEWER</span>
+    <h2>Reading the XML Diff</h2>
+  </div>
+
+  <p>The XML diff viewer uses colour-coded highlighting to indicate the type of change between the source and target versions of a component:</p>
+
+  <div class="diff-legend">
+    <div class="diff-pill"><div class="diff-swatch green"></div> Added (present in Source, missing in Target)</div>
+    <div class="diff-pill"><div class="diff-swatch red"></div> Removed (missing in Source, present in Target)</div>
+    <div class="diff-pill"><div class="diff-swatch amber"></div> Changed (value differs between Source and Target)</div>
+    <div class="diff-pill"><div class="diff-swatch grey"></div> Identical (no difference on this line)</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Result Status</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Identical</td>
+        <td class="field-desc">Component XML is byte-for-byte the same in both orgs. No action needed.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Different</td>
+        <td class="field-desc">Component exists in both orgs but the XML content differs. Click the row to see what changed.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Source Only</td>
+        <td class="field-desc">Component exists in the source org but not in the target. Likely a new addition.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Target Only</td>
+        <td class="field-desc">Component exists in the target org but not in the source. May have been deleted from source or added directly to target.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Tip:</strong> Use the <strong>package.xml export</strong> button to download a <code>package.xml</code> manifest of all selected (ticked) components. This can be used directly with SFDX or Ant migration tooling.
+  </div>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 3</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 4 — Back Promotion Workflow                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="section-header">
+    <span class="step-badge">BACK PROMOTION</span>
+    <h2>Back Promotion Workflow</h2>
+  </div>
+
+  <p>The back-promotion workflow creates a <strong>GitHub Pull Request</strong> containing the selected metadata changes. It never deploys directly — all deployments must be done manually after the PR is reviewed and validated.</p>
+
+  <ol class="step-list">
+    <li><span class="text"><strong>Tick components to back-promote</strong> — In the comparison results table, use the checkboxes on the left to select one or more components you want to promote back.</span></li>
+    <li><span class="text"><strong>Click "Create Back-Promotion PR"</strong> — The button appears in the Action Panel on the right-hand side once at least one component is selected.</span></li>
+    <li><span class="text"><strong>Enter your GitHub repository name</strong> — Provide the <code>owner/repo</code> reference (e.g. <code>myorg/salesforce-repo</code>) and your GitHub personal access token when prompted.</span></li>
+    <li><span class="text"><strong>PR is created — no deployment happens</strong> — The tool commits the selected metadata XML files to a new branch and opens a PR from source branch to target branch on GitHub. <strong>Nothing is deployed to Salesforce at this stage.</strong></span></li>
+    <li><span class="text"><strong>Review the PR on GitHub</strong> — Open the PR URL provided. Inspect the file diff, review comments, and confirm the changes are correct.</span></li>
+    <li><span class="text"><strong>If conflicts exist — AI Conflict Resolution is triggered</strong> — See Page 5 for the full approval-gated AI resolution workflow.</span></li>
+    <li><span class="text"><strong>Approve the PR on GitHub</strong> — Once you are satisfied with the changes, approve the PR via GitHub's review flow.</span></li>
+    <li><span class="text"><strong>Run "Validate on Target" (checkonly deploy)</strong> — Click this button in the tool to run a <code>checkonly</code> deploy to the target org. This runs Apex tests and validates the metadata without committing any changes to the org.</span></li>
+    <li><span class="text"><strong>Merge the PR manually on GitHub</strong> — Only after validation passes, return to GitHub and merge the PR yourself. The tool does not auto-merge.</span></li>
+  </ol>
+
+  <div class="approval-gate">
+    <div class="gate-header">
+      <div class="gate-icon">&#x26A0;</div>
+      Approval Gates — Back Promotion Workflow
+    </div>
+    <ul>
+      <li>The tool <strong>never deploys metadata directly</strong> to any Salesforce org at any stage of this workflow.</li>
+      <li>The PR must be <strong>reviewed and approved by a team member</strong> on GitHub before any merge.</li>
+      <li>A <strong>checkonly validation must pass</strong> before the PR is eligible to be merged.</li>
+      <li>The PR must be <strong>merged manually</strong> by the user on GitHub — the tool does not auto-merge under any circumstances.</li>
+    </ul>
+  </div>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 4</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 5 — AI Conflict Resolution                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="section-header">
+    <span class="step-badge amber">AI RESOLUTION</span>
+    <h2>AI Conflict Resolution (with Approval Gates)</h2>
+  </div>
+
+  <p>When a back-promotion PR contains XML merge conflicts, the tool can invoke <strong>Claude AI</strong> to propose a resolution for each conflicted file. Every proposed resolution requires <strong>explicit user approval</strong> before it is committed — the AI never modifies files autonomously.</p>
+
+  <p><strong>How it works — step by step:</strong></p>
+
+  <ol class="step-list">
+    <li><span class="text"><strong>Conflicts are detected</strong> — When the back-promotion PR has one or more XML merge conflicts, a notification appears in the tool's Action Panel. Click <strong>"Resolve Conflicts with AI"</strong> to begin.</span></li>
+    <li><span class="text"><strong>Claude AI analyses each conflict</strong> — The tool sends each conflicted Salesforce XML file to the Claude AI engine. The AI examines both versions of the file and the surrounding context.</span></li>
+    <li><span class="text"><strong>For each file, the tool presents:</strong>
+      <ul style="margin-top: 6px; margin-bottom: 0;">
+        <li>The conflict displayed as both versions side by side</li>
+        <li>The AI's proposed resolution with a plain-English explanation of the decision</li>
+        <li>A diff preview showing exactly what would change if the resolution is applied</li>
+      </ul>
+    </span></li>
+    <li><span class="text"><strong>You approve or reject each file individually</strong> — For every conflicted file, you must click either <strong>"Approve"</strong> or <strong>"Reject"</strong>. There is no bulk-approve option.</span></li>
+    <li><span class="text"><strong>Rejected files remain as conflicts</strong> — Any file you reject stays in a conflicted state and must be resolved manually in your local Git client or directly on GitHub.</span></li>
+    <li><span class="text"><strong>Approved resolutions are committed to the PR branch</strong> — The approved file content is committed to the back-promotion branch. <strong>This does not deploy anything to Salesforce.</strong></span></li>
+    <li><span class="text"><strong>Validation runs automatically after all approvals</strong> — Once you have processed all files (approved or rejected), a <code>checkonly</code> validation deploy is triggered automatically against the target org.</span></li>
+    <li><span class="text"><strong>You merge the PR manually on GitHub</strong> — Only after validation passes and you are satisfied with all resolutions, return to GitHub to merge the PR yourself.</span></li>
+  </ol>
+
+  <div class="approval-gate">
+    <div class="gate-header">
+      <div class="gate-icon">&#x26A0;</div>
+      Approval Gates — AI Conflict Resolution
+    </div>
+    <ul>
+      <li><strong>The AI never deploys anything directly.</strong> It only proposes resolutions to XML conflicts in the PR branch.</li>
+      <li><strong>Every resolution requires explicit user approval.</strong> Each file must be individually approved or rejected — there is no auto-accept.</li>
+      <li><strong>Rejected files are not modified.</strong> They remain as conflicts for the user to handle manually.</li>
+      <li><strong>Approved resolutions are only committed to the PR branch</strong> — not deployed to any org.</li>
+      <li><strong>Checkonly validation runs before any merge</strong> to confirm the resolved XML is deployable.</li>
+      <li><strong>The PR must be manually merged</strong> by the user on GitHub. The AI cannot and does not trigger a merge.</li>
+    </ul>
+  </div>
+
+  <div class="note">
+    <strong>Best practice:</strong> Always read the AI's explanation for each resolution before approving. For complex Profiles or Permission Sets, the AI may flag that it is uncertain — treat these as high-priority manual reviews.
+  </div>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 5</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAGE 6 — Troubleshooting                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="section-header">
+    <span class="step-badge">TROUBLESHOOTING</span>
+    <h2>Common Issues &amp; Fixes</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Problem</th><th>Likely Cause</th><th>Solution</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Backend won't start</td>
+        <td class="field-values">Python version too old or pip3 missing</td>
+        <td class="field-desc">Run <code>python3 --version</code> — must be 3.8 or above. Install pip3 with <code>python3 -m ensurepip --upgrade</code>. Then re-run <code>./start.sh</code>.</td>
+      </tr>
+      <tr>
+        <td class="field-name">No orgs showing in dropdown</td>
+        <td class="field-values">No authenticated orgs found by SFDX</td>
+        <td class="field-desc">Run <code>sf org list</code> in a terminal. If empty, authenticate with <code>sf org login web --alias myOrg</code> and refresh the browser.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Comparison fails mid-run</td>
+        <td class="field-values">Org session expired</td>
+        <td class="field-desc">The SFDX session token has expired. Re-authenticate the affected org: <code>sf org login web --alias PROD</code>, then re-run the comparison.</td>
+      </tr>
+      <tr>
+        <td class="field-name">CORS error in browser console</td>
+        <td class="field-values">Backend not running on port 8000</td>
+        <td class="field-desc">Check that <code>./start.sh</code> is still running. Open <code>http://localhost:8000/health</code> — you should see <code>{"status":"ok"}</code>. Restart <code>./start.sh</code> if needed.</td>
+      </tr>
+      <tr>
+        <td class="field-name">PR creation fails</td>
+        <td class="field-values">GitHub token missing or insufficient scope</td>
+        <td class="field-desc">The personal access token must have the <code>repo</code> scope (full repository access). Re-generate the token in GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Validation returns errors for unchanged files</td>
+        <td class="field-values">Org dependencies or missing components</td>
+        <td class="field-desc">The target org may be missing dependent metadata. Review the error detail in the validation results panel. Add the required dependent components to the selection before creating the PR.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Frontend shows blank page on load</td>
+        <td class="field-values">Build artefacts missing or Vite not running</td>
+        <td class="field-desc">Ensure <code>./start.sh</code> completed without errors. Check the terminal for the exact URL — Vite may have assigned a different port (e.g. 5174) if 5173 was in use.</td>
+      </tr>
+      <tr>
+        <td class="field-name">Want to test without real orgs</td>
+        <td class="field-values">No authenticated orgs available</td>
+        <td class="field-desc">Toggle <strong>Demo Mode</strong> using the switch in the top-right of the UI header. All comparison, diff, and back-promotion screens are available with mock data.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-header" style="margin-top: 32px;">
+    <span class="step-badge">REFERENCE</span>
+    <h2>Quick Reference</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Item</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Frontend URL</td>
+        <td class="field-desc"><code>http://localhost:5173</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">Backend URL</td>
+        <td class="field-desc"><code>http://localhost:8000</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">Backend health check</td>
+        <td class="field-desc"><code>http://localhost:8000/health</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">GitHub repository</td>
+        <td class="field-desc"><code>https://github.com/navjeetsalesforce/sf-org-comparator</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">Start command</td>
+        <td class="field-desc"><code>chmod +x start.sh &amp;&amp; ./start.sh</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">Authenticate org</td>
+        <td class="field-desc"><code>sf org login web --alias &lt;alias&gt;</code></td>
+      </tr>
+      <tr>
+        <td class="field-name">List orgs</td>
+        <td class="field-desc"><code>sf org list</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="doc-footer">
+    <span>Salesforce Org Comparator &middot; User Guide v1.0</span>
+    <span>Page 6</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -16,6 +16,15 @@ echo "║      SF Org Comparator  v1.0.0         ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
+# ─── Environment checks ───────────────────────────────────────────────────────
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  echo -e "\033[33m[warning] ANTHROPIC_API_KEY not set — AI conflict resolution will use demo mode\033[0m"
+  echo -e "\033[33m          Set it with: export ANTHROPIC_API_KEY=sk-ant-...\033[0m"
+  echo ""
+else
+  echo "[info]    ANTHROPIC_API_KEY is set — AI conflict resolution is enabled"
+fi
+
 # ─── Backend ─────────────────────────────────────────────────────────────────
 echo "[backend] Installing Python dependencies…"
 cd "$ROOT_DIR/backend"

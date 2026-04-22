@@ -77,3 +77,63 @@ export interface PRResponse {
   prNumber: number
   branch: string
 }
+
+// ─── Conflict Resolution ───────────────────────────────────────────────────
+
+export type ConfidenceLevel = 'high' | 'medium' | 'low'
+export type ResolutionStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ConflictLine {
+  lineNumber: number | null
+  type: 'conflict' | 'addition' | 'deletion' | 'ordering'
+  sourceValue: string
+  targetValue: string
+  description: string
+}
+
+export interface ConflictResolution {
+  type: string
+  name: string
+  sourceXml: string
+  targetXml: string
+  proposedXml: string
+  explanation: string
+  confidence: ConfidenceLevel
+  autoResolvable: boolean
+  conflictLines: ConflictLine[]
+  status: ResolutionStatus
+  demoMode?: boolean
+}
+
+export interface AnalyseConflictsRequest {
+  components: Array<{
+    type: string
+    name: string
+    sourceXml: string
+    targetXml: string
+  }>
+  conflictContext: string
+}
+
+export interface AnalyseConflictsResponse {
+  resolutions: ConflictResolution[]
+  demoMode: boolean
+  totalCount: number
+}
+
+export interface ApplyResolutionsRequest {
+  approvedResolutions: Array<{
+    type: string
+    name: string
+    proposedXml: string
+  }>
+  branch: string
+  repo: string
+}
+
+export interface ApplyResolutionsResponse {
+  success: boolean
+  committedFiles: string[]
+  errors: string[]
+  message: string
+}
